@@ -1,0 +1,63 @@
+{
+  "users": [
+    {
+      "id": "admin-1",
+      "email": "admin@metamorphoo.com",
+      "password": "$2b$10$O4iWWuSKaS2a3XflTc2thurgXLuY1XFBdN5w/HRFq3Fz/.sadJmdi",
+      "role": "ADMIN"
+    }
+  ],
+  "campaign": {
+    "id": "1",
+    "title": "Cagnotte Metamorphoo",
+    "description": "Aidez-nous à financer notre projet...",
+    "goal_amount": 5000000,
+    "current_amount": 2381000,
+    "image": "/images/default-campaign.jpg",
+    "deadline": "2026-12-31",
+    "status": "ACTIVE"
+  },
+  "donations": [
+    {
+      "id": "1784812098592",
+      "reference": "TX543170",
+      "amount": 1000,
+      "operator": "wave",
+      "donor_phone": "+2250789456485",
+      "donor_name": "joseph ",
+      "status": "SUCCESS",
+      "date": "2026-07-23T13:08:18.592Z"
+    },
+    {
+      "id": "1784812467024",
+      "reference": "TX773104",
+      "amount": 10000,
+      "operator": "wave",
+      "donor_phone": "0789456485",
+      "donor_name": "joseph",
+      "status": "SUCCESS",
+      "date": "2026-07-23T13:14:27.024Z"
+    },
+    {
+      "id": "1784821612826",
+      "reference": "TX326934",
+      "amount": 10000,
+      "operator": "wave",
+      "donor_phone": "0789456485",
+      "donor_name": "JOSEPH ",
+      "status": "SUCCESS",
+      "date": "2026-07-23T15:46:52.829Z"
+    },
+    {
+      "id": "1784824840849",
+      "reference": "TX483749",
+      "amount": 10000,
+      "operator": "wave",
+      "donor_phone": "075646522545",
+      "donor_name": "gerard ",
+      "status": "SUCCESS",
+      "date": "2026-07-23T16:40:40.849Z"
+    }
+  ],
+  "transactions": []
+}
