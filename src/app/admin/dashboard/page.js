@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
@@ -25,6 +26,7 @@ export default function DashboardPage() {
   }, []);
 
   const confirmDonation = async (reference) => {
+    const loadingToast = toast.loading('Confirmation en cours...');
     try {
       const res = await fetch(`/api/admin/donations/${reference}/confirm`, {
         method: 'PUT',
@@ -32,10 +34,14 @@ export default function DashboardPage() {
         body: JSON.stringify({ status: 'SUCCESS' })
       });
       if (res.ok) {
+        toast.success('Don validé avec succès !', { id: loadingToast });
         fetchStats(); // Refresh stats after confirmation
+      } else {
+        toast.error('Erreur lors de la validation', { id: loadingToast });
       }
     } catch (err) {
       console.error(err);
+      toast.error('Erreur de connexion', { id: loadingToast });
     }
   };
 

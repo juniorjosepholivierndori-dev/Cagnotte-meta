@@ -1,118 +1,143 @@
-import fs from 'fs';
-import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
-const DB_FILE = path.join(process.cwd(), 'data.json');
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// Initialiser la base de données
-const initDB = () => {
-  if (!fs.existsSync(DB_FILE)) {
-    const initialData = {
-      users: [
-        {
-          id: 'admin-1',
-          email: 'admin@metamorphoo.com',
-          // Mot de passe: 'admin123'
-          password: '$2b$10$O4iWWuSKaS2a3XflTc2thurgXLuY1XFBdN5w/HRFq3Fz/.sadJmdi', 
-          role: 'ADMIN',
-        }
-      ],
-      campaign: {
-        id: '1',
-        title: 'Cagnotte Metamorphoo',
-        description: 'Aidez-nous à financer notre projet...',
-        goal_amount: 5000000,
-        current_amount: 2350000,
-        image: '/images/default-campaign.jpg',
-        deadline: '2026-12-31',
-        status: 'ACTIVE'
-      },
-      donations: [],
-      transactions: []
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
-  }
-};
-
-const readDB = () => {
-  initDB();
-  const data = fs.readFileSync(DB_FILE, 'utf-8');
-  return JSON.parse(data);
-};
-
-const writeDB = (data) => {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-};
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const db = {
-  getUserByEmail: (email) => {
-    const data = readDB();
-    return data.users.find(u => u.email === email);
+  getUserByEmail: async (email) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+    if (error) return null;
+    return data;
   },
   
-  getCampaign: () => {
-    const data = readDB();
-    return data.campaign;
+  getCampaign: async () => {
+    const { data, error } = await supabase
+      .from('campaign')
+      .select('*')
+      .eq('id', '1')
+      .single();
+    if (error) return null;
+    return data;
   },
   
-  updateCampaign: (newCampaignData) => {
-    const data = readDB();
-    data.campaign = { ...data.campaign, ...newCampaignData };
-    writeDB(data);
-    return data.campaign;
+  updateCampaign: async (newCampaignData) => {
+    const { id, current_amount, ...updateData } = newCampaignData;
+    const { data, error } = await supabase
+      .from('campaign')
+      .update(updateData)
+      .eq('id', '1')
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   },
   
-  createDonation: (donationData) => {
-    const data = readDB();
+  createDonation: async (donationData) => {
     const newDonation = {
       id: Date.now().toString(),
       ...donationData,
+      status: 'PENDING',
       date: new Date().toISOString()
     };
-    data.donations.push(newDonation);
-    writeDB(data);
-    return newDonation;
-  },
-  
-  updateDonationStatus: (reference, status) => {
-    const data = readDB();
-    const index = data.donations.findIndex(d => d.reference === reference);
-    if (index !== -1) {
-      data.donations[index].status = status;
+    
+    const { data, error } = await supabase
+      .from('donations')
+      .insert([newDonation])
+      .select()
+      .single();
       
-      // Update campaign total if successful
-      if (status === 'SUCCESS') {
-         data.campaign.current_amount += data.donations[index].amount;
-      }
-      writeDB(data);
-      return data.donations[index];
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  
+  updateDonationStatus: async (reference, status) => {
+    const { data: donation, error: findError } = await supabase
+      .from('donations')
+      .select('*')
+      .eq('reference', reference)
+      .single();
+      
+    if (findError || !donation) return null;
+    
+    // Avoid double counting
+    if (donation.status === 'SUCCESS' && status === 'SUCCESS') {
+      return donation;
     }
-    return null;
+    
+    const { data: updatedDonation, error: updateError } = await supabase
+      .from('donations')
+      .update({ status })
+      .eq('reference', reference)
+      .select()
+      .single();
+      
+    if (updateError) return null;
+    
+    if (status === 'SUCCESS') {
+      const campaign = await db.getCampaign();
+      if (campaign) {
+        await supabase
+          .from('campaign')
+          .update({ current_amount: Number(campaign.current_amount) + Number(donation.amount) })
+          .eq('id', '1');
+      }
+    }
+    
+    return updatedDonation;
   },
   
-  getDonationByRef: (reference) => {
-    const data = readDB();
-    return data.donations.find(d => d.reference === reference);
+  getDonationByRef: async (reference) => {
+    const { data, error } = await supabase
+      .from('donations')
+      .select('*')
+      .eq('reference', reference)
+      .single();
+    if (error) return null;
+    return data;
   },
   
-  getAllDonations: () => {
-    const data = readDB();
-    return data.donations.sort((a, b) => new Date(b.date) - new Date(a.date));
+  getAllDonations: async () => {
+    const { data, error } = await supabase
+      .from('donations')
+      .select('*')
+      .order('date', { ascending: false });
+    if (error) return [];
+    return data;
   },
   
-  getStats: () => {
-    const data = readDB();
-    const totalCollected = data.campaign.current_amount;
-    const goal = data.campaign.goal_amount;
-    const successDonations = data.donations.filter(d => d.status === 'SUCCESS');
-    const donorCount = successDonations.length;
+  getStats: async () => {
+    const campaign = await db.getCampaign();
+    if (!campaign) return null;
+    
+    const totalCollected = Number(campaign.current_amount) || 0;
+    const goal = Number(campaign.goal_amount) || 0;
+    
+    const { data: successDonations, error: successError } = await supabase
+      .from('donations')
+      .select('amount')
+      .eq('status', 'SUCCESS');
+      
+    const donorCount = successDonations ? successDonations.length : 0;
     const averageDonation = donorCount > 0 ? totalCollected / donorCount : 0;
     
+    const { data: recentDonations, error: recentError } = await supabase
+      .from('donations')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(5);
+      
     return {
       totalCollected,
       goal,
       donorCount,
       averageDonation,
-      recentDonations: data.donations.slice(-5)
+      recentDonations: recentDonations || []
     };
   }
 };

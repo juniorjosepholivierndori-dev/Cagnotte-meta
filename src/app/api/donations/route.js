@@ -13,7 +13,7 @@ export async function POST(request) {
 
     const reference = `TX${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
 
-    const newDonation = db.createDonation({
+    const newDonation = await db.createDonation({
       reference,
       amount: parseInt(amount, 10),
       operator,

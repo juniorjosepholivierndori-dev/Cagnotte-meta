@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { z } from 'zod';
 
 const OPERATORS = [
   { id: 'wave', name: 'Wave', color: '#1dc3c3', image: 'https://www.emploitogo.info/wp-content/uploads/2024/04/wave-recrute.png' },
@@ -34,28 +36,59 @@ export default function DonationPage() {
       });
   }, []);
 
+  const phoneSchema = z.string().regex(/^(01|05|07)\d{8}$/, "Le numéro doit faire 10 chiffres et commencer par 01, 05 ou 07 (ex: 0700000000)");
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError('');
+
+    // Remove spaces from phone
+    const cleanPhone = phone.replace(/\s+/g, '');
+    
+    // Validate phone with Zod
+    const phoneValidation = phoneSchema.safeParse(cleanPhone);
+    if (!phoneValidation.success) {
+      toast.error(phoneValidation.error.errors[0].message);
+      return;
+    }
+
+    setIsSubmitting(true);
+    const loadingToast = toast.loading('Création du don...');
 
     try {
       const res = await fetch('/api/donations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, operator, phone, name })
+        body: JSON.stringify({ amount, operator, phone: cleanPhone, name })
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        window.location.href = data.payment_url;
+        toast.success('Redirection vers le paiement...', { id: loadingToast });
+        
+        // Sécurité: Validation de l'URL pour éviter l'Open Redirect
+        try {
+          const urlObj = new URL(data.payment_url);
+          const allowedHosts = ['pay.wave.com', 'checkout.cinetpay.com', 'app.fedapay.com'];
+          if (allowedHosts.includes(urlObj.hostname)) {
+            window.location.href = data.payment_url;
+          } else {
+            throw new Error('URL de paiement non sécurisée');
+          }
+        } catch (urlError) {
+          toast.error('URL de paiement invalide', { id: loadingToast });
+          setIsSubmitting(false);
+        }
       } else {
-        setError(data.error || "Une erreur est survenue");
+        const errorMsg = data.error || "Une erreur est survenue";
+        setError(errorMsg);
+        toast.error(errorMsg, { id: loadingToast });
         setIsSubmitting(false);
       }
     } catch (err) {
       setError("Erreur de connexion au serveur");
+      toast.error("Erreur de connexion au serveur", { id: loadingToast });
       setIsSubmitting(false);
     }
   };

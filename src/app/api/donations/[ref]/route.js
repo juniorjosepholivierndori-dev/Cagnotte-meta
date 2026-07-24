@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 export async function GET(request, { params }) {
   try {
     const { ref } = await params;
-    const donation = db.getDonationByRef(ref);
+    const donation = await db.getDonationByRef(ref);
 
     if (!donation) {
       return NextResponse.json({ error: 'Donation introuvable' }, { status: 404 });
