@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { z } from 'zod'
+
+const LoginSchema = z.object({
+  email: z.string().email('Email invalide'),
+  password: z.string().min(6, 'Le mot de passe doit avoir au moins 6 caractères')
+});
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json()
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email et mot de passe requis' },
-        { status: 400 }
-      )
-    }
+    const data = await request.json()
+    const validated = LoginSchema.parse(data)
+    const { email, password } = validated
 
     const supabase = await createClient()
 
@@ -28,6 +29,12 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, user: data.user })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation échouée', details: error.errors },
+        { status: 400 }
+      );
+    }
     console.error('Login error:', error)
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },

@@ -41,8 +41,8 @@ export const db = {
   createDonation: async (donationData) => {
     const newDonation = {
       id: Date.now().toString(),
-      ...donationData,
-      status: 'PENDING',
+      status: 'PENDING', // par défaut
+      ...donationData, // permet d'écraser le status par défaut si fourni
       date: new Date().toISOString()
     };
     
