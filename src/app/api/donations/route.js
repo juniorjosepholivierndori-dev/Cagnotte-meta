@@ -47,11 +47,13 @@ export async function POST(request) {
 
     const campaignPromise = db.getCampaign().then(campaign => {
       if (campaign) {
-        // Optionnel: on utilise directement le client supabase si besoin, mais updateCampaign existe
-        return db.updateCampaign({
-          id: '1',
-          current_amount: Number(campaign.current_amount) + parsedAmount
-        });
+        // On importe supabase de db.js s'il est exporté, sinon on le refait
+        // Heureusement, db.js fait: export const supabase = ...
+        const { supabase } = require('@/lib/db');
+        return supabase
+          .from('campaign')
+          .update({ current_amount: Number(campaign.current_amount) + parsedAmount })
+          .eq('id', '1');
       }
     });
 
