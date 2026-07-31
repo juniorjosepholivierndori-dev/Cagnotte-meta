@@ -5,8 +5,8 @@ import { z } from 'zod';
 const DonationSchema = z.object({
   amount: z.string().or(z.number()).transform(val => Number(val)).pipe(z.number().positive('Le montant doit être positif')),
   operator: z.string().min(1, 'L\'opérateur est requis'),
-  phone: z.string().regex(/^[0-9+\s-]{10,}$/, 'Numéro de téléphone invalide'),
-  name: z.string().max(100).optional()
+  phone: z.string().regex(/^(01|05|07)\d{8}$/, 'Le numéro doit faire 10 chiffres et commencer par 01, 05 ou 07'),
+  name: z.string().regex(/^[A-Za-zÀ-ÿ\s]*$/, 'Le nom ne doit contenir que des lettres et des espaces').max(100).optional().or(z.literal(''))
 });
 
 export async function POST(request) {

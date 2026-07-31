@@ -37,6 +37,7 @@ export default function DonationPage() {
   }, []);
 
   const phoneSchema = z.string().regex(/^(01|05|07)\d{8}$/, "Le numéro doit faire 10 chiffres et commencer par 01, 05 ou 07 (ex: 0700000000)");
+  const nameSchema = z.string().regex(/^[A-Za-zÀ-ÿ\s]*$/, "Le nom ne doit contenir que des lettres et des espaces").optional();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,8 +49,17 @@ export default function DonationPage() {
     // Validate phone with Zod
     const phoneValidation = phoneSchema.safeParse(cleanPhone);
     if (!phoneValidation.success) {
-      toast.error(phoneValidation.error.errors[0].message);
+      toast.error("Le numéro doit faire 10 chiffres et commencer par 01, 05 ou 07 (ex: 0700000000)");
       return;
+    }
+
+    // Validate name with Zod (if provided)
+    if (name.trim() !== '') {
+      const nameValidation = nameSchema.safeParse(name);
+      if (!nameValidation.success) {
+        toast.error("Le nom ne doit contenir que des lettres et des espaces");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -99,7 +109,7 @@ export default function DonationPage() {
 
   if (!campaign) return null;
 
-  const progress = Math.min(100, Math.round((campaign.current_amount / campaign.goal_amount) * 100));
+  const progress = Math.min(100, Math.round(((campaign.current_amount || 0) / (campaign.goal_amount || 1)) * 100));
 
   return (
     <main className="min-h-screen py-12 px-4 md:px-8 max-w-6xl mx-auto flex flex-col lg:flex-row gap-12 items-center justify-center">
@@ -125,7 +135,7 @@ export default function DonationPage() {
           <div className="flex justify-between items-end mb-4">
             <div>
               <p className="text-slate-500 text-sm font-medium uppercase tracking-wider mb-1">Montant collecté</p>
-              <p className="text-4xl font-bold text-slate-900">{campaign.current_amount.toLocaleString('fr-FR')} <span className="text-xl text-slate-500 font-normal">FCFA</span></p>
+              <p className="text-4xl font-bold text-slate-900">{(campaign.current_amount || 0).toLocaleString('fr-FR')} <span className="text-xl text-slate-500 font-normal">FCFA</span></p>
             </div>
           </div>
           
@@ -140,7 +150,7 @@ export default function DonationPage() {
           
           <div className="flex justify-between mt-3 text-sm font-medium">
             <span className="text-[var(--color-primary)]">{progress}% atteint</span>
-            <span className="text-slate-500">Objectif: {campaign.goal_amount.toLocaleString('fr-FR')} FCFA</span>
+            <span className="text-slate-500">Objectif: {(campaign.goal_amount || 0).toLocaleString('fr-FR')} FCFA</span>
           </div>
         </div>
       </div>
@@ -238,8 +248,12 @@ export default function DonationPage() {
                   <input 
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+225 07 00 00 00 00"
+                    onChange={(e) => {
+                      // On ne garde que les chiffres et les espaces
+                      const val = e.target.value.replace(/[^\d\s]/g, '');
+                      setPhone(val);
+                    }}
+                    placeholder="07 00 00 00 00"
                     className="w-full bg-transparent border-none py-2 px-3 text-slate-900 focus:outline-none placeholder-slate-400 font-medium"
                     required
                   />
@@ -250,7 +264,11 @@ export default function DonationPage() {
                   <input 
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      // On ne garde que les lettres et espaces
+                      const val = e.target.value.replace(/[^A-Za-zÀ-ÿ\s]/g, '');
+                      setName(val);
+                    }}
                     placeholder="Généreux donateur"
                     className="w-full bg-transparent border-none py-2 px-3 text-slate-900 focus:outline-none placeholder-slate-400 font-medium"
                   />
