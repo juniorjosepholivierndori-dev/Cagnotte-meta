@@ -7,7 +7,7 @@ const DonationSchema = z.object({
   amount: z.string().or(z.number()).transform(val => Number(val)).pipe(z.number().positive('Le montant doit être positif')),
   operator: z.string().min(1, 'L\'opérateur est requis'),
   phone: z.string().regex(/^[0-9+\s-]{10,}$/, 'Numéro de téléphone invalide'),
-  name: z.string().regex(/^[a-zA-ZÀ-ÿ\s]*$/, "Le nom ne doit contenir que des lettres").max(100).optional()
+  name: z.string().max(100).optional()
 });
 
 export async function POST(request) {
@@ -17,17 +17,17 @@ export async function POST(request) {
     const { amount, operator, phone, name } = validated;
 
     const reference = `TX${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
-
-    const newDonation = await db.createDonation({
-      reference,
-      amount: parseInt(amount, 10),
-      operator,
-      donor_phone: phone,
-      donor_name: name || 'Anonyme',
-      status: operator === 'wave' ? 'PENDING' : 'SUCCESS'
-    });
+    const parsedAmount = parseInt(amount, 10);
 
     if (operator === 'wave') {
+      const newDonation = await db.createDonation({
+        reference,
+        amount: parsedAmount,
+        operator,
+        donor_phone: phone,
+        donor_name: name || 'Anonyme',
+        status: 'PENDING'
+      });
       return NextResponse.json({
         success: true,
         reference: newDonation.reference,
@@ -35,21 +35,33 @@ export async function POST(request) {
       });
     }
 
-    // Flux pour MTN, Orange, Moov (Lien statique d'agrégateur)
-    // On met à jour la cagnotte globale en arrière-plan sans bloquer la réponse (très rapide)
-    db.getCampaign().then(campaign => {
+    // Flux pour MTN, Orange, Moov (Lien statique d'agrégateur - Option 2 Rapide)
+    // On exécute la création du don et la mise à jour de la cagnotte en parallèle pour plus de rapidité !
+    const donationPromise = db.createDonation({
+      reference,
+      amount: parsedAmount,
+      operator,
+      donor_phone: phone,
+      donor_name: name || 'Anonyme',
+      status: 'SUCCESS' // Validation immédiate
+    });
+
+    const campaignPromise = db.getCampaign().then(campaign => {
       if (campaign) {
-        db.updateCampaign({
+        // Optionnel: on utilise directement le client supabase si besoin, mais updateCampaign existe
+        return db.updateCampaign({
           id: '1',
-          current_amount: Number(campaign.current_amount) + parseInt(amount, 10)
+          current_amount: Number(campaign.current_amount) + parsedAmount
         });
       }
     });
 
+    // On attend que les deux opérations parallèles soient finies
+    const [newDonation] = await Promise.all([donationPromise, campaignPromise]);
+
     return NextResponse.json({
       success: true,
       reference: newDonation.reference,
-      // On utilise le lien fourni dans le fichier .env.local
       payment_url: process.env.AGGREGATOR_LINK || 'VOTRE_LIEN_AGREGATEUR_ICI'
     });
 

@@ -36,49 +36,21 @@ export default function DonationPage() {
       });
   }, []);
 
-  const phoneSchema = z.string().regex(/^(01|05|07)\d{8}$/, "Le numéro doit commencer par 01, 05 ou 07 (Réseaux Ivoiriens).");
+  const phoneSchema = z.string().regex(/^(01|05|07)\d{8}$/, "Le numéro doit faire 10 chiffres et commencer par 01, 05 ou 07 (ex: 0700000000)");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     // Remove spaces from phone
-    let cleanPhone = phone.replace(/\s+/g, '');
+    const cleanPhone = phone.replace(/\s+/g, '');
     
-    // Si l'utilisateur a mis le +225 lui-même, on le retire pour la vérification
-    if (cleanPhone.startsWith('+225')) {
-      cleanPhone = cleanPhone.substring(4);
-    } else if (cleanPhone.startsWith('225') && cleanPhone.length === 13) {
-      cleanPhone = cleanPhone.substring(3);
-    }
-
-    // Vérification stricte de la longueur
-    if (cleanPhone.length !== 10) {
-      const msg = cleanPhone.length > 10 
-        ? `Le numéro est trop long (${cleanPhone.length} chiffres). Il doit en faire exactement 10.`
-        : `Le numéro est trop court (${cleanPhone.length} chiffres). Il doit en faire exactement 10.`;
-      toast.error(msg);
-      return;
-    }
-
-    // Validate phone with Zod pour vérifier le préfixe (01, 05, 07)
+    // Validate phone with Zod
     const phoneValidation = phoneSchema.safeParse(cleanPhone);
     if (!phoneValidation.success) {
       toast.error(phoneValidation.error.errors[0].message);
       return;
     }
-
-    // Validation du nom (lettres et espaces uniquement, pas de chiffres/caractères spéciaux)
-    if (name) {
-      const nameRegex = /^[a-zA-ZÀ-ÿ\s]+$/;
-      if (!nameRegex.test(name)) {
-        toast.error("Le nom ne doit contenir que des lettres (pas de chiffres ni de caractères spéciaux).");
-        return;
-      }
-    }
-
-    // Ajout automatique de l'indicateur
-    const finalPhone = `+225 ${cleanPhone}`;
 
     setIsSubmitting(true);
     const loadingToast = toast.loading('Création du don...');
@@ -87,7 +59,7 @@ export default function DonationPage() {
       const res = await fetch('/api/donations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, operator, phone: finalPhone, name })
+        body: JSON.stringify({ amount, operator, phone: cleanPhone, name })
       });
 
       const data = await res.json();
@@ -267,7 +239,7 @@ export default function DonationPage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Ex: 07 00 00 00 00"
+                    placeholder="+225 07 00 00 00 00"
                     className="w-full bg-transparent border-none py-2 px-3 text-slate-900 focus:outline-none placeholder-slate-400 font-medium"
                     required
                   />

@@ -9,8 +9,8 @@ const LoginSchema = z.object({
 
 export async function POST(request) {
   try {
-    const body = await request.json()
-    const validated = LoginSchema.parse(body)
+    const data = await request.json()
+    const validated = LoginSchema.parse(data)
     const { email, password } = validated
 
     const supabase = await createClient()
