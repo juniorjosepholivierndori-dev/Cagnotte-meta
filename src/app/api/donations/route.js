@@ -34,7 +34,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       reference: newDonation.reference,
-      payment_url: 'https://pay.wave.com/m/M_ci_6mx-fb2LdUGp/c/ci/'
+      payment_url: 'https://pay.wave.com/m/M_ci_Na04388hZUu-/c/ci/'
     });
 
   } catch (error) {
