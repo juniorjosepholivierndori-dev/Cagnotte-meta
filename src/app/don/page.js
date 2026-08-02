@@ -5,10 +5,7 @@ import toast from 'react-hot-toast';
 import { z } from 'zod';
 
 const OPERATORS = [
-  { id: 'wave', name: 'Wave', color: '#1dc3c3', image: 'https://www.emploitogo.info/wp-content/uploads/2024/04/wave-recrute.png' },
-  { id: 'orange', name: 'Orange Money', color: '#ff6600', image: 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Orange_logo.svg' },
-  { id: 'mtn', name: 'MTN MoMo', color: '#ffcc00', image: 'https://www.seekpng.com/png/detail/69-691715_mtn-mm-logo-generic-mtn-mobile-money-logo.png' },
-  { id: 'moov', name: 'Moov Money', color: '#0066ff', image: 'https://www.moov-africa.ml/PublishingImages/contenu/moov-money.png' }
+  { id: 'wave', name: 'Wave', color: '#1dc3c3', image: 'https://www.emploitogo.info/wp-content/uploads/2024/04/wave-recrute.png' }
 ];
 
 const PRESET_AMOUNTS = [1000, 5000, 10000, 25000];
@@ -213,7 +210,7 @@ export default function DonationPage() {
                 <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs">2</span>
                 Moyen de paiement
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {OPERATORS.map(op => (
                   <button
                     key={op.id}
@@ -226,10 +223,10 @@ export default function DonationPage() {
                     }`}
                     style={operator === op.id ? { borderColor: op.color, backgroundColor: `${op.color}10` } : {}}
                   >
-                    <div className="h-8 w-16 relative flex items-center justify-center bg-white rounded-md p-1 overflow-hidden shadow-sm border border-slate-100">
+                    <div className="h-12 w-24 relative flex items-center justify-center bg-white rounded-md p-1 overflow-hidden shadow-sm border border-slate-100">
                       <img src={op.image} alt={op.name} className="max-h-full max-w-full object-contain" />
                     </div>
-                    <span className="text-xs font-bold text-slate-800 text-center">{op.name}</span>
+                    <span className="text-sm font-bold text-slate-800 text-center">{op.name}</span>
                   </button>
                 ))}
               </div>

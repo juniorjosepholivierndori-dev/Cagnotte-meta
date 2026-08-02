@@ -18,52 +18,23 @@ export async function POST(request) {
     const reference = `TX${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
     const parsedAmount = parseInt(amount, 10);
 
-    if (operator === 'wave') {
-      const newDonation = await db.createDonation({
-        reference,
-        amount: parsedAmount,
-        operator,
-        donor_phone: phone,
-        donor_name: name || 'Anonyme',
-        status: 'PENDING'
-      });
-      return NextResponse.json({
-        success: true,
-        reference: newDonation.reference,
-        payment_url: 'https://pay.wave.com/m/M_ci_6mx-fb2LdUGp/c/ci/'
-      });
+    if (operator !== 'wave') {
+      return NextResponse.json({ error: 'Opérateur non supporté' }, { status: 400 });
     }
 
-    // Flux pour MTN, Orange, Moov (Lien statique d'agrégateur - Option 2 Rapide)
-    // On exécute la création du don et la mise à jour de la cagnotte en parallèle pour plus de rapidité !
-    const donationPromise = db.createDonation({
+    const newDonation = await db.createDonation({
       reference,
       amount: parsedAmount,
       operator,
       donor_phone: phone,
       donor_name: name || 'Anonyme',
-      status: 'SUCCESS' // Validation immédiate
+      status: 'PENDING'
     });
-
-    const campaignPromise = db.getCampaign().then(campaign => {
-      if (campaign) {
-        // On importe supabase de db.js s'il est exporté, sinon on le refait
-        // Heureusement, db.js fait: export const supabase = ...
-        const { supabase } = require('@/lib/db');
-        return supabase
-          .from('campaign')
-          .update({ current_amount: Number(campaign.current_amount) + parsedAmount })
-          .eq('id', '1');
-      }
-    });
-
-    // On attend que les deux opérations parallèles soient finies
-    const [newDonation] = await Promise.all([donationPromise, campaignPromise]);
-
+    
     return NextResponse.json({
       success: true,
       reference: newDonation.reference,
-      payment_url: process.env.AGGREGATOR_LINK || 'VOTRE_LIEN_AGREGATEUR_ICI'
+      payment_url: 'https://pay.wave.com/m/M_ci_6mx-fb2LdUGp/c/ci/'
     });
 
   } catch (error) {
